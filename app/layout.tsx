@@ -12,6 +12,11 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "#ElReto",
   description: "Seguimiento diario de objetivos",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
