@@ -367,12 +367,12 @@ export default function CalendarPage() {
 
       {/* ── Edit modal ──────────────────────────────────────────────────────── */}
       {editingDate && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
           <div
             className="absolute inset-0 bg-black/30"
             onClick={() => setEditingDate(null)}
           />
-          <div className="relative bg-white rounded-t-3xl w-full max-w-sm p-6 pb-10 shadow-xl">
+          <div className="relative bg-white rounded-t-3xl w-full max-w-sm p-6 pb-24 shadow-xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <span className="text-lg font-bold text-slate-800">
