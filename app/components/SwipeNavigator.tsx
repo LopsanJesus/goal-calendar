@@ -24,17 +24,14 @@ export default function SwipeNavigator({ children }: { children: React.ReactNode
     const dy = t.clientY - touchStart.current.y;
     touchStart.current = null;
 
-    // Ignorar si el movimiento es más vertical que horizontal
     if (Math.abs(dy) > MAX_SWIPE_Y || Math.abs(dx) < MIN_SWIPE_X) return;
 
     const currentIndex = routes.indexOf(pathname);
     if (currentIndex === -1) return;
 
     if (dx < 0 && currentIndex < routes.length - 1) {
-      // Swipe izquierda → vista siguiente
       router.push(routes[currentIndex + 1]);
     } else if (dx > 0 && currentIndex > 0) {
-      // Swipe derecha → vista anterior
       router.push(routes[currentIndex - 1]);
     }
   };

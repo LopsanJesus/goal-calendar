@@ -90,6 +90,7 @@ export const GOAL_GROUPS: GoalGroup[] = [
     variants: [
       { id: "habits-read", label: "Leer", activeDays: [1, 2, 3, 4, 5] },
       { id: "habits-chores", label: "Tareas de casa", activeDays: [1, 2, 3, 4, 5] },
+      { id: "habits-gym", label: "Gym", activeDays: [2, 4] },
     ],
   },
 ];

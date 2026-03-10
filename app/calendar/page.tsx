@@ -10,9 +10,11 @@ import {
   Briefcase,
   Home,
   Sunset,
+  X,
 } from "lucide-react";
 import {
   loadSessions,
+  saveSessions,
   getActiveVariant,
   getActiveGroups,
   getDayPoints,
@@ -27,21 +29,12 @@ import {
 } from "../lib/storage";
 import { GOAL_GROUPS, DAY_CONFIGS, GoalStatus, DayType } from "../config";
 import { getDayLabel } from "../components/ActiveDay";
+import GoalToggle from "../components/GoalToggle";
 
 const DAY_ABBR = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sab"];
 const MONTH_ABBR = [
-  "En",
-  "Feb",
-  "Mar",
-  "Abr",
-  "May",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dic",
+  "En", "Feb", "Mar", "Abr", "May", "Jun",
+  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ];
 
 function formatDate(dateStr: string): string {
@@ -103,10 +96,12 @@ const DAY_TYPE_ICON: Record<DayType, React.ReactNode> = {
 
 export default function CalendarPage() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [config, setConfig] = useState<ChallengeConfig>(
-    DEFAULT_CHALLENGE_CONFIG,
-  );
+  const [config, setConfig] = useState<ChallengeConfig>(DEFAULT_CHALLENGE_CONFIG);
   const [today, setToday] = useState("");
+
+  // Edit modal state
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editStatuses, setEditStatuses] = useState<Record<string, GoalStatus>>({});
 
   useEffect(() => {
     setSessions(loadSessions());
@@ -114,14 +109,62 @@ export default function CalendarPage() {
     setToday(todayDateStr());
   }, []);
 
+  const sessionMap = new Map(sessions.map((s) => [s.date, s]));
+  const allDates = generateDateRange(config.startDate, config.endDate);
+
   const outsideCount = sessions.filter(
     (s) => s.date < config.startDate || s.date > config.endDate,
   ).length;
 
-  const sessionMap = new Map(sessions.map((s) => [s.date, s]));
+  // ── Edit handlers ──────────────────────────────────────────────────────────
 
-  // All dates in range, newest first
-  const allDates = generateDateRange(config.startDate, config.endDate);
+  const openEdit = (dateStr: string) => {
+    const session = sessionMap.get(dateStr);
+    setEditStatuses(session?.statuses ?? {});
+    setEditingDate(dateStr);
+  };
+
+  const toggleEdit = (variantId: string) => {
+    setEditStatuses((prev) => {
+      const current = prev[variantId] ?? null;
+      const next: GoalStatus =
+        current === null ? "success" : current === "success" ? "fail" : null;
+      return { ...prev, [variantId]: next };
+    });
+  };
+
+  const saveEdit = () => {
+    if (!editingDate) return;
+    const updated = [...sessions];
+    const existingIdx = updated.findIndex((s) => s.date === editingDate);
+
+    if (existingIdx !== -1) {
+      updated[existingIdx] = { ...updated[existingIdx], statuses: editStatuses };
+    } else {
+      const d = new Date(editingDate + "T12:00:00");
+      const last = updated[updated.length - 1];
+      const newSession: SessionRecord = {
+        session: last ? last.session + 1 : 1,
+        date: editingDate,
+        dayOfWeek: d.getDay(),
+        statuses: editStatuses,
+      };
+      const insertAt = updated.findIndex((s) => s.date > editingDate);
+      if (insertAt === -1) updated.push(newSession);
+      else updated.splice(insertAt, 0, newSession);
+    }
+
+    saveSessions(updated);
+    setSessions(updated);
+    setEditingDate(null);
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const editingDayOfWeek = editingDate
+    ? new Date(editingDate + "T12:00:00").getDay()
+    : 0;
+  const editingGroups = editingDate ? getActiveGroups(editingDayOfWeek) : [];
 
   return (
     <div className="min-h-screen bg-violet-50 pt-14 pb-16 px-4">
@@ -175,10 +218,7 @@ export default function CalendarPage() {
                               .join(", ")
                           : (getActiveVariant(group, dayOfWeek)?.label ?? "");
                         return (
-                          <span
-                            key={group.id}
-                            className="text-[11px] text-slate-300"
-                          >
+                          <span key={group.id} className="text-[11px] text-slate-300">
                             {label}
                           </span>
                         );
@@ -189,7 +229,7 @@ export default function CalendarPage() {
               );
             }
 
-            // Past or today — recorded session or empty
+            // Past or today
             const outcome: Outcome = session
               ? getSessionOutcome(session)
               : dayConfig.threshold === 0
@@ -207,13 +247,15 @@ export default function CalendarPage() {
               fullIdx >= 0 ? getSessionSavingsImpact(sessions, fullIdx) : 0;
 
             const activeGroups = getActiveGroups(dayOfWeek);
+            const isEditable = dayConfig.threshold > 0;
 
             return (
               <div
                 key={dateStr}
-                className={`bg-white rounded-2xl border p-4 shadow-sm ${
+                onClick={isEditable ? () => openEdit(dateStr) : undefined}
+                className={`bg-white rounded-2xl border p-4 shadow-sm transition-colors ${
                   isToday ? "border-violet-200" : "border-slate-100"
-                }`}
+                } ${isEditable ? "cursor-pointer active:bg-slate-50" : ""}`}
               >
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-3">
@@ -235,14 +277,11 @@ export default function CalendarPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    {/* Points badge */}
                     {session && outcome !== "relax" && outcome !== "empty" && (
                       <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
                         {achieved}/{max}pt
                       </span>
                     )}
-
-                    {/* Savings impact badge */}
                     {savingsImpact !== 0 && (
                       <span
                         className={`flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
@@ -256,8 +295,6 @@ export default function CalendarPage() {
                         {savingsImpact}€
                       </span>
                     )}
-
-                    {/* Outcome pill */}
                     <span
                       className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full ${outcomeClasses[outcome]}`}
                     >
@@ -283,11 +320,7 @@ export default function CalendarPage() {
                               className="flex items-center gap-2 text-sm text-slate-600"
                             >
                               {statusIcon(status)}
-                              <span
-                                className={
-                                  status === null ? "text-slate-300" : ""
-                                }
-                              >
+                              <span className={status === null ? "text-slate-300" : ""}>
                                 {variant.label}
                               </span>
                             </div>
@@ -304,14 +337,9 @@ export default function CalendarPage() {
                         >
                           {statusIcon(status)}
                           {group.type === "strategic" && (
-                            <Flame
-                              size={11}
-                              className="text-slate-300 shrink-0"
-                            />
+                            <Flame size={11} className="text-slate-300 shrink-0" />
                           )}
-                          <span
-                            className={status === null ? "text-slate-300" : ""}
-                          >
+                          <span className={status === null ? "text-slate-300" : ""}>
                             {variant.label}
                           </span>
                           {variant.reward && status === "success" && (
@@ -336,6 +364,79 @@ export default function CalendarPage() {
           </p>
         )}
       </div>
+
+      {/* ── Edit modal ──────────────────────────────────────────────────────── */}
+      {editingDate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setEditingDate(null)}
+          />
+          <div className="relative bg-white rounded-t-3xl w-full max-w-sm p-6 pb-10 shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-lg font-bold text-slate-800">
+                {formatDate(editingDate)}
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={saveEdit}
+                  className="text-sm font-semibold text-violet-600 px-3 py-1 rounded-xl bg-violet-50 active:bg-violet-100"
+                >
+                  Guardar
+                </button>
+                <button onClick={() => setEditingDate(null)}>
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Toggles */}
+            <div className="flex flex-col gap-3">
+              {editingGroups.map((group) => {
+                if (group.composite) {
+                  const activeVariants = group.variants.filter(
+                    (v) =>
+                      !v.activeDays ||
+                      v.activeDays.includes(editingDayOfWeek),
+                  );
+                  return (
+                    <div key={group.id}>
+                      <span className="text-xs text-slate-400 font-medium px-1 mb-1.5 block">
+                        Hábitos
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        {activeVariants.map((variant) => (
+                          <GoalToggle
+                            key={variant.id}
+                            label={variant.label}
+                            status={editStatuses[variant.id] ?? null}
+                            type={group.type}
+                            mandatory={false}
+                            onClick={() => toggleEdit(variant.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                const variant = getActiveVariant(group, editingDayOfWeek)!;
+                return (
+                  <GoalToggle
+                    key={group.id}
+                    label={variant.label}
+                    status={editStatuses[variant.id] ?? null}
+                    type={group.type}
+                    mandatory={false}
+                    onClick={() => toggleEdit(variant.id)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
