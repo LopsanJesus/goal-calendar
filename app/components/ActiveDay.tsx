@@ -16,7 +16,7 @@ import {
   getMandatoryGroupIds,
   getSessionSavingsImpact,
 } from "../lib/sessionState";
-import { getCurrentDate } from "../lib/storage";
+import { getCurrentDate, loadChallengeConfig } from "../lib/storage";
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
@@ -130,6 +130,14 @@ export default function ActiveDay() {
 
   const savings = sessionIndex >= 0 ? getSessionSavingsImpact(sessions, sessionIndex) : 0;
 
+  const challengeStart = loadChallengeConfig().startDate;
+  const dayNum =
+    Math.floor(
+      (new Date(todayDateStr() + "T12:00:00").getTime() -
+        new Date(challengeStart + "T12:00:00").getTime()) /
+        (1000 * 60 * 60 * 24),
+    ) + 1;
+
   // ── Visual state ───────────────────────────────────────────────────────────
   const pageBg = isRelax
     ? "bg-amber-50"
@@ -198,7 +206,7 @@ export default function ActiveDay() {
 
           {currentSession && (
             <p className="text-[10px] text-slate-300 mt-1">
-              Día #{currentSession.session}
+              Día #{dayNum}
             </p>
           )}
         </div>

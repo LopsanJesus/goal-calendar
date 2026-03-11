@@ -177,7 +177,7 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {allDates.map((dateStr) => {
+          {allDates.map((dateStr, dayIndex) => {
             const d = new Date(dateStr + "T12:00:00");
             const dayOfWeek = d.getDay();
             const dayConfig = DAY_CONFIGS[dayOfWeek];
@@ -269,11 +269,9 @@ export default function CalendarPage() {
                         hoy
                       </span>
                     )}
-                    {session && (
-                      <span className="text-[10px] text-slate-300">
-                        #{session.session}
-                      </span>
-                    )}
+                    <span className="text-[10px] text-slate-300">
+                      #{dayIndex + 1}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
