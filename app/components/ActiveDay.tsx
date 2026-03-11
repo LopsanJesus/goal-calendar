@@ -133,7 +133,7 @@ export default function ActiveDay() {
   const challengeStart = loadChallengeConfig().startDate;
   const dayNum =
     Math.floor(
-      (new Date(todayDateStr() + "T12:00:00").getTime() -
+      (today.getTime() -
         new Date(challengeStart + "T12:00:00").getTime()) /
         (1000 * 60 * 60 * 24),
     ) + 1;
