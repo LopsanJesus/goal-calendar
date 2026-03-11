@@ -14,7 +14,7 @@ import {
   getGroupPoints,
   getDayPoints,
   getMandatoryGroupIds,
-  calculateSavings,
+  getSessionSavingsImpact,
 } from "../lib/sessionState";
 import { getCurrentDate } from "../lib/storage";
 
@@ -128,7 +128,7 @@ export default function ActiveDay() {
           ? "fail"
           : null;
 
-  const savings = sessionIndex >= 0 ? calculateSavings(sessions) : 0;
+  const savings = sessionIndex >= 0 ? getSessionSavingsImpact(sessions, sessionIndex) : 0;
 
   // ── Visual state ───────────────────────────────────────────────────────────
   const pageBg = isRelax

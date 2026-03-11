@@ -144,6 +144,9 @@ export function getSessionSavingsImpact(
     }
   }
 
+  // +1€ bonus: perfect day (4 points)
+  if (dayPoints >= 4) impact += 1;
+
   // -4€ penalty: attempted the day but scored 0 points
   if (anyMarked && dayPoints === 0) impact -= 4;
 
